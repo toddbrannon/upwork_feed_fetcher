@@ -1,11 +1,30 @@
 const express = require('express');
 const Parser = require('rss-parser');
+const session = require('express-session');
 const nodemailer = require('nodemailer');
+const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const app = express();
 const parser = new Parser();
 const schedule = require('node-schedule');
 require('dotenv').config();
+
+// Set the views directory and view engine
+app.set('views', './views');
+app.set('view engine', 'ejs');
+
+// Add middleware to serve static files from the public directory
+app.use(express.static('public'));
+
+// Set up body parser middleware
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Set up session middleware
+app.use(session({
+    secret: 'your_secret_key',
+    resave: false,
+    saveUninitialized: false
+  }));
 
 // Set up Mongoose connection
 mongoose.connect(process.env.MONGO_URI, {
@@ -26,8 +45,127 @@ const jobFeedSchema = new mongoose.Schema({
     url: String,
 }, { collection: 'job_feed' });
 
-// Create the model using the schema
+// Create the JobFeed model using the schema
 const JobFeed = mongoose.model('JobFeed', jobFeedSchema);
+
+const feedAccountSchema = new mongoose.Schema({
+    email: String,
+    username: String,
+    ip: String
+});
+
+// Create the FeedAccount model using the schema
+const FeedAccount = mongoose.model('FeedAccount', feedAccountSchema);
+
+// Set up nodemailer transporter
+const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+                auth: {
+                    user: process.env.EMAIL_USERNAME, // Your Gmail username
+                    pass: process.env.APP_SPEC_PASSWORD // Your Gmail password
+                }
+});
+
+// Middleware function to check if user is logged in
+function requireLogin(req, res, next) {
+    if (req.session.isLoggedIn) {
+      // User is logged in, so proceed to the next middleware function
+      next();
+    } else {
+      // User is not logged in, so redirect to the index page
+      res.redirect('/');
+    }
+  }
+  
+  // Route handler for the root route
+//   app.get('/', (req, res) => {
+    // if (req.session.isLoggedIn) {
+    //   User is logged in, so render the dashboard page
+    //   res.render('dashboard');
+    // } else {
+    //   User is not logged in, so render the index page
+    //   res.render('index');
+    // }
+    // res.render('dashboard');
+//   });
+
+app.get('/', (req, res) => {
+    req.session.isLoggedIn = false; // Set isLoggedIn to true
+    res.locals.isLoggedIn = req.session.isLoggedIn; // Pass isLoggedIn to the template
+    res.locals.currentRoute = req.originalUrl; // Pass currentRoute to the template
+    console.log("index rendering");
+    res.render('index', { isLoggedIn: res.locals.isLoggedIn });
+  });
+
+
+
+app.get('/dashboard', (req, res) => {
+    req.session.isLoggedIn = true; // Set isLoggedIn to true
+    res.locals.isLoggedIn = req.session.isLoggedIn; // Pass isLoggedIn to the template
+    res.locals.currentRoute = req.originalUrl; // Pass currentRoute to the template
+    console.log("dashboard rendering");
+    res.render('dashboard', { isLoggedIn: res.locals.isLoggedIn });
+  });
+
+// Route to render the getting_started view
+app.get('/getting_started', (req, res) => {
+    req.session.isLoggedIn = false; // Set isLoggedIn to false
+    res.locals.isLoggedIn = req.session.isLoggedIn; // Pass isLoggedIn to the template
+    res.locals.currentRoute = req.originalUrl; // Pass currentRoute to the template
+    res.render('getting_started', { isLoggedIn: res.locals.isLoggedIn });
+});
+
+// Route to handle form submission and send confirmation email
+app.post('/send_confirmation_email', (req, res) => {
+    const email = req.body.email;
+
+// Include the header partial
+app.get('*', (req, res, next) => {
+    res.locals.isLoggedIn = req.session.isLoggedIn; // Pass isLoggedIn to the template
+    res.locals.currentRoute = req.originalUrl; // Pass currentRoute to the template
+    res.locals.includeHeader = true; // Set includeHeader to true
+    next();
+});
+
+    // Insert email into MongoDB collection
+    const feedAccount = new FeedAccount({
+        email: email
+    });
+    feedAccount.save();
+
+    // Send confirmation email
+    const mailOptions = {
+        from: 'your_email@gmail.com',
+        to: email,
+        subject: 'Confirm your email',
+        html: `
+            <p>Hi ${email}!</p>
+            <p>Please click the button below to confirm your email:</p>
+            <a href="http://localhost:8000/confirm_email?email=${email}" target="_blank" style="display: inline-block; background-color: #007bff; color: #fff; padding: 10px 20px; border-radius: 5px; text-decoration: none;">Confirm Email</a>
+        `
+    };
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.log(error);
+        } else {
+            console.log('Email sent: ' + info.response);
+        }
+    });
+
+    // Render the email_sent view
+    res.render('email_sent', { email: email });
+});
+
+// Route to render the email_confirmed view
+app.get('/email_confirmed', (req, res) => {
+    res.render('email_confirmed');
+});
+
+// Route to render the feed_setup view
+app.get('/feed_setup', (req, res) => {
+    req.session.isLoggedIn = true; // Set isLoggedIn to true
+    res.render('feed_setup');
+});
 
 app.get('/check-new-jobs-email', async (req, res) => {
     try {
