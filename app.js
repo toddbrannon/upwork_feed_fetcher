@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 const app = express();
 const parser = new Parser();
 const schedule = require('node-schedule');
-const { registerTimezone, setTimezone } = require('timezone-support');
+require('./timezones'); // Load your timezone configuration module
 require('dotenv').config();
 
 // Set the views directory and view engine
@@ -239,15 +239,8 @@ async function fetchAndSendJobAlertsEmail() {
         }
     } catch (error) {
         console.error('Error:', error.message);
-    }
-    
+    }   
 }
-
-// Register the timezones you intend to use
-registerTimezone('America/Chicago');
-
-// Set the default timezone
-setTimezone('America/Chicago');
 
 const cronExpression = '*/15 7-19 * * *'; // Every 15 minutes from 7 AM to 7 PM
 schedule.scheduleJob(cronExpression, fetchAndSendJobAlertsEmail);
