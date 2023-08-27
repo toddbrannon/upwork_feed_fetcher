@@ -7,8 +7,11 @@ const mongoose = require('mongoose');
 const app = express();
 const parser = new Parser();
 const schedule = require('node-schedule');
-require('./timezones'); // Load your timezone configuration module
+const moment = require('moment-timezone');
 require('dotenv').config();
+
+// Set the default timezone
+moment.tz.setDefault('America/Chicago');
 
 // Set the views directory and view engine
 app.set('views', './views');
