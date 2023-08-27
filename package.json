@@ -20,6 +20,7 @@
     "nodemailer": "^6.9.4",
     "nodemon": "^3.0.1",
     "rss-parser": "^3.13.0",
+    "timezone-support": "^3.1.0",
     "twilio": "^4.15.0"
   }
 }
