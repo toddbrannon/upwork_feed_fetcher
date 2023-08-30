@@ -123,28 +123,29 @@ app.get('/getting_started', (req, res) => {
 app.post('/send_confirmation_email', (req, res) => {
     const email = req.body.email;
 
-// Include the header partial
-app.get('*', (req, res, next) => {
-    res.locals.isLoggedIn = req.session.isLoggedIn; // Pass isLoggedIn to the template
-    res.locals.currentRoute = req.originalUrl; // Pass currentRoute to the template
-    res.locals.includeHeader = true; // Set includeHeader to true
-    next();
-});
+    // Include the header partial
+    app.get('*', (req, res, next) => {
+        res.locals.isLoggedIn = req.session.isLoggedIn; // Pass isLoggedIn to the template
+        res.locals.currentRoute = req.originalUrl; // Pass currentRoute to the template
+        res.locals.includeHeader = true; // Set includeHeader to true
+        next();
+    });
 
     // Insert email into MongoDB collection
-    const feedAccount = new FeedAccount({
-        email: email
-    });
-    feedAccount.save();
+    // const feedAccount = new FeedAccount({
+    //     email: email
+    // });
+    // feedAccount.save();
 
     // Send confirmation email
     const mailOptions = {
         from: 'your_email@gmail.com',
         to: email,
-        subject: 'Confirm your email',
+        subject: 'Welcome to GigWave: Confirm your email',
         html: `
             <p>Hi ${email}!</p>
-            <p>Please click the button below to confirm your email:</p>
+            <p>Thanks for signing up for GigWave alerts!</p>
+            <p>Before continuing with your setup, please click the button below to confirm your email:</p>
             <a href="http://localhost:8000/confirm_email?email=${email}" target="_blank" style="display: inline-block; background-color: #007bff; color: #fff; padding: 10px 20px; border-radius: 5px; text-decoration: none;">Confirm Email</a>
         `
     };
@@ -157,12 +158,33 @@ app.get('*', (req, res, next) => {
     });
 
     // Render the email_sent view
-    res.render('email_sent', { email: email });
+    res.render('email_sent', { isLoggedIn: res.locals.isLoggedIn, email: email });
+});
+
+// Route to handle email confirmation
+app.get('/confirm_email', async (req, res) => {
+    const email = req.query.email; // Get email address from query string
+
+    // Add email address to MongoDB collection
+    const feedAccount = new FeedAccount({
+        email: email
+    });
+
+    // feedAccount.save();
+
+    try {
+        await feedAccount.save(); // Wait for save method to complete
+        console.log('Email address added to collection');
+        res.redirect('/email_confirmed'); // Redirect to email_confirmed route
+    } catch (err) {
+        console.log(err);
+        res.send('Error adding email address to collection');
+    }
 });
 
 // Route to render the email_confirmed view
 app.get('/email_confirmed', (req, res) => {
-    res.render('email_confirmed');
+    res.render('email_confirmed', { isLoggedIn: res.locals.isLoggedIn });
 });
 
 // Route to render the feed_setup view
