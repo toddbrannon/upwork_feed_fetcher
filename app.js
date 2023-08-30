@@ -11,7 +11,7 @@ const moment = require('moment-timezone');
 require('dotenv').config();
 
 // Set the default timezone
-moment.tz.setDefault('America/Chicago');
+moment.tz.setDefault('Pacific/Honolulu');
 
 // Set the views directory and view engine
 app.set('views', './views');
@@ -247,7 +247,7 @@ async function fetchAndSendJobAlertsEmail() {
 }
 
 
-const cronExpression = '*/15 12-24 * * *'; // Every 15 minutes from 7 AM to 7 PM
+const cronExpression = '*/15 7-19 * * *'; // Every 15 minutes from 7 AM to 7 PM
 schedule.scheduleJob(cronExpression, fetchAndSendJobAlertsEmail);
 
 
