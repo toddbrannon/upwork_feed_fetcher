@@ -247,7 +247,7 @@ async function fetchAndSendJobAlertsEmail() {
 }
 
 
-const cronExpression = '*/15 7-19 * * *'; // Every 15 minutes from 7 AM to 7 PM
+const cronExpression = '*/15 12-24 * * *'; // Every 15 minutes from 7 AM to 7 PM
 schedule.scheduleJob(cronExpression, fetchAndSendJobAlertsEmail);
 
 
